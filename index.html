@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Urna Eletrônica</title>
+  <style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+
+    .urna {
+      background: #dbd5c9; padding: 25px; border-radius: 10px; display: flex; gap: 20px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2); position: relative; border: 2px solid #b5b0a4;
+    }
+    .tela {
+      width: 320px; height: 230px; background: #fff; border: 3px solid #444; border-radius: 5px;
+      padding: 15px; display: flex; flex-direction: column; justify-content: space-between; position: relative;
+    }
+    .teclado { background: #222; padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 10px; }
+
+
+    .grid-num { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .btn-key {
+      background: #111; color: #fff; font-size: 18px; font-weight: bold;
+      height: 42px; border-radius: 4px; display: flex; justify-content: center;
+      align-items: center; cursor: pointer; user-select: none; box-shadow: 0 3px #000;
+    }
+    .btn-key:active { transform: translateY(2px); box-shadow: 0 1px #000; }
+
+    .grid-acoes { display: flex; gap: 6px; margin-top: 5px; }
+    .btn-acao {
+      height: 40px; font-size: 10px; font-weight: bold; text-transform: uppercase;
+      border-radius: 4px; display: flex; justify-content: center; align-items: center;
+      cursor: pointer; flex: 1; user-select: none;
+    }
+    .btn-branco { background: #fff; color: #000; }
+    .btn-corrige { background: #eb7324; color: #000; }
+    .btn-confirma { background: #00a859; color: #fff; flex: 1.2; height: 48px; }
+
+    
+    .stage { display: none; flex-direction: column; height: 100%; justify-content: space-between; }
+    
+    .stage-gov { display: flex; }
+    .stage-pres { display: none; }
+    .stage-fim { display: none; }
+
+    #gov-conf:checked ~ .urna .stage-gov { display: none; }
+    #gov-conf:checked ~ .urna .stage-pres { display: flex; }
+
+    #pres-conf:checked ~ .urna .stage-gov { display: none; }
+    #pres-conf:checked ~ .urna .stage-pres { display: none; }
+    #pres-conf:checked ~ .urna .stage-fim { display: flex; justify-content: center; align-items: center; }
+
+    .voto-num { font-size: 26px; font-weight: bold; letter-spacing: 6px; margin: 8px 0; }
+    .info-candidato { font-size: 13px; min-height: 45px; line-height: 1.3; }
+
+   
+    .key-layer { display: none; }
+
+ 
+    .urna .key-gov-default { display: grid; }
+    #gov-1:checked ~ .urna .key-gov-default { display: none; }
+    #gov-1:checked ~ .urna .key-gov-d1 { display: grid; }
+    #gov-2:checked ~ .urna .key-gov-default { display: none; }
+    #gov-2:checked ~ .urna .key-gov-d2 { display: grid; }
+    #gov-nulo1:checked ~ .urna .key-gov-default { display: none; }
+    #gov-nulo1:checked ~ .urna .key-gov-dnulo { display: grid; }
+
+   
+    #gov-11:checked ~ .urna .key-layer,
+    #gov-22:checked ~ .urna .key-layer,
+    #gov-nulo:checked ~ .urna .key-layer,
+    #gov-branco:checked ~ .urna .key-layer { display: none !important; }
+
+    #gov-11:checked ~ .urna .key-locked,
+    #gov-22:checked ~ .urna .key-locked,
+    #gov-nulo:checked ~ .urna .key-locked,
+    #gov-branco:checked ~ .urna .key-locked { display: grid !important; }
+
+    
+    #gov-conf:checked ~ .urna .key-layer { display: none !important; }
+    #gov-conf:checked ~ .urna .key-pres-default { display: grid !important; }
+
+    #gov-conf:checked ~ #pres-1:checked ~ .urna .key-pres-default { display: none !important; }
+    #gov-conf:checked ~ #pres-1:checked ~ .urna .key-pres-d1 { display: grid !important; }
+    #gov-conf:checked ~ #pres-2:checked ~ .urna .key-pres-default { display: none !important; }
+    #gov-conf:checked ~ #pres-2:checked ~ .urna .key-pres-d2 { display: grid !important; }
+    #gov-conf:checked ~ #pres-nulo1:checked ~ .urna .key-pres-default { display: none !important; }
+    #gov-conf:checked ~ #pres-nulo1:checked ~ .urna .key-pres-dnulo { display: grid !important; }
+
+  
+    #gov-conf:checked ~ #pres-10:checked ~ .urna .key-layer,
+    #gov-conf:checked ~ #pres-20:checked ~ .urna .key-layer,
+    #gov-conf:checked ~ #pres-nulo:checked ~ .urna .key-layer,
+    #gov-conf:checked ~ #pres-branco:checked ~ .urna .key-layer { display: none !important; }
+
+    #gov-conf:checked ~ #pres-10:checked ~ .urna .key-locked,
+    #gov-conf:checked ~ #pres-20:checked ~ .urna .key-locked,
+    #gov-conf:checked ~ #pres-nulo:checked ~ .urna .key-locked,
+    #gov-conf:checked ~ #pres-branco:checked ~ .urna .key-locked { display: grid !important; }
+
+   
+    #pres-conf:checked ~ .urna .key-layer { display: none !important; }
+    #pres-conf:checked ~ .urna .key-locked { display: grid !important; }
+
+
+    .txt-gov-num::after { content: "__"; }
+    #gov-1:checked ~ .urna .txt-gov-num::after { content: "1_"; }
+    #gov-11:checked ~ .urna .txt-gov-num::after { content: "11"; }
+    #gov-2:checked ~ .urna .txt-gov-num::after { content: "2_"; }
+    #gov-22:checked ~ .urna .txt-gov-num::after { content: "22"; }
+    #gov-nulo1:checked ~ .urna .txt-gov-num::after { content: "9_"; }
+    #gov-nulo:checked ~ .urna .txt-gov-num::after { content: "99"; }
+    #gov-branco:checked ~ .urna .txt-gov-num::after { content: ""; }
+
+    .txt-gov-info::after { content: ""; }
+    #gov-11:checked ~ .urna .txt-gov-info::after { content: "Nome: Carlos Eduardo \A Partido: PAB"; white-space: pre-wrap; }
+    #gov-22:checked ~ .urna .txt-gov-info::after { content: "Nome: Mariana Lima \A Partido: PCD"; white-space: pre-wrap; }
+    #gov-nulo:checked ~ .urna .txt-gov-info::after { content: "VOTO NULO \A Candidato não encontrado."; white-space: pre-wrap; color: red; }
+    #gov-branco:checked ~ .urna .txt-gov-info::after { content: "VOTO EM BRANCO"; font-weight: bold; }
+
+    
+    .txt-pres-num::after { content: "__"; }
+    #pres-1:checked ~ .urna .txt-pres-num::after { content: "1_"; }
+    #pres-10:checked ~ .urna .txt-pres-num::after { content: "10"; }
+    #pres-2:checked ~ .urna .txt-pres-num::after { content: "2_"; }
+    #pres-20:checked ~ .urna .txt-pres-num::after { content: "20"; }
+    #pres-nulo1:checked ~ .urna .txt-pres-num::after { content: "9_"; }
+    #pres-nulo:checked ~ .urna .txt-pres-num::after { content: "99"; }
+    #pres-branco:checked ~ .urna .txt-pres-num::after { content: ""; }
+
+    .txt-pres-info::after { content: ""; }
+    #pres-10:checked ~ .urna .txt-pres-info::after { content: "Nome: Ana Silva \A Partido: PXYZ"; white-space: pre-wrap; }
+    #pres-20:checked ~ .urna .txt-pres-info::after { content: "Nome: Roberto Souza \A Partido: PLMN"; white-space: pre-wrap; }
+    #pres-nulo:checked ~ .urna .txt-pres-info::after { content: "VOTO NULO \A Candidato não encontrado."; white-space: pre-wrap; color: red; }
+    #pres-branco:checked ~ .urna .txt-pres-info::after { content: "VOTO EM BRANCO"; font-weight: bold; }
+
+ 
+    .btn-corrige-gov, .btn-branco-gov { display: flex; }
+    .btn-corrige-pres, .btn-branco-pres { display: none; }
+
+    #gov-conf:checked ~ .urna .btn-corrige-gov,
+    #gov-conf:checked ~ .urna .btn-branco-gov { display: none; }
+
+    #gov-conf:checked ~ .urna .btn-corrige-pres,
+    #gov-conf:checked ~ .urna .btn-branco-pres { display: flex; }
+
+    #pres-conf:checked ~ .urna .btn-corrige-pres,
+    #pres-conf:checked ~ .urna .btn-branco-pres { display: none; }
+
+  
+    .btn-conf-act { display: none; }
+    .btn-conf-dis { display: flex; opacity: 0.4; cursor: not-allowed; }
+
+    #gov-11:checked ~ .urna .btn-conf-gov,
+    #gov-22:checked ~ .urna .btn-conf-gov,
+    #gov-nulo:checked ~ .urna .btn-conf-gov,
+    #gov-branco:checked ~ .urna .btn-conf-gov { display: flex; }
+
+    #gov-11:checked ~ .urna .btn-conf-dis,
+    #gov-22:checked ~ .urna .btn-conf-dis,
+    #gov-nulo:checked ~ .urna .btn-conf-dis,
+    #gov-branco:checked ~ .urna .btn-conf-dis { display: none; }
+
+    #gov-conf:checked ~ .urna .btn-conf-gov { display: none !important; }
+    #gov-conf:checked ~ .urna .btn-conf-dis { display: flex; opacity: 0.4; cursor: not-allowed; }
+
+    #gov-conf:checked ~ #pres-10:checked ~ .urna .btn-conf-pres,
+    #gov-conf:checked ~ #pres-20:checked ~ .urna .btn-conf-pres,
+    #gov-conf:checked ~ #pres-nulo:checked ~ .urna .btn-conf-pres,
+    #gov-conf:checked ~ #pres-branco:checked ~ .urna .btn-conf-pres { display: flex !important; }
+
+    #gov-conf:checked ~ #pres-10:checked ~ .urna .btn-conf-dis,
+    #gov-conf:checked ~ #pres-20:checked ~ .urna .btn-conf-dis,
+    #gov-conf:checked ~ #pres-nulo:checked ~ .urna .btn-conf-dis,
+    #gov-conf:checked ~ #pres-branco:checked ~ .urna .btn-conf-dis { display: none !important; }
+
+    #pres-conf:checked ~ .urna .btn-conf-act,
+    #pres-conf:checked ~ .urna .btn-conf-dis { display: none !important; }
+
+  
+    .modal {
+      display: none; position: absolute; top: -10px; bottom: -10px; left: -10px; right: -10px;
+      background: rgba(17, 17, 17, 0.95); border-radius: 8px; color: #fff;
+      padding: 20px; flex-direction: column; justify-content: center; align-items: center;
+      text-align: center; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+
+    @keyframes autoTransition {
+      0% { opacity: 0; transform: scale(0.9); visibility: visible; }
+      15% { opacity: 1; transform: scale(1); visibility: visible; }
+      80% { opacity: 1; transform: scale(1); visibility: visible; }
+      100% { opacity: 0; transform: scale(0.95); visibility: hidden; pointer-events: none; }
+    }
+
+    #gov-conf:checked ~ .urna .modal-gov {
+      display: flex;
+      animation: autoTransition 2.2s forwards;
+    }
+
+    #pres-conf:checked ~ .urna .modal-pres {
+      display: flex;
+      animation: autoTransition 2.2s forwards;
+    }
+
+    .msg-title { font-size: 13px; text-transform: uppercase; color: #aaa; margin-bottom: 8px; }
+    .msg-gov::after, .msg-pres::after { font-size: 18px; font-weight: bold; color: #2ecc71; display: block; margin-top: 5px; }
+
+    #gov-11:checked ~ .urna .msg-gov::after { content: "Você votou em: Carlos Eduardo"; }
+    #gov-22:checked ~ .urna .msg-gov::after { content: "Você votou em: Mariana Lima"; }
+    #gov-nulo:checked ~ .urna .msg-gov::after { content: "Você votou em: Voto Nulo"; }
+    #gov-branco:checked ~ .urna .msg-gov::after { content: "Você votou em: Voto em Branco"; }
+
+    #pres-10:checked ~ .urna .msg-pres::after { content: "Você votou em: Ana Silva"; }
+    #pres-20:checked ~ .urna .msg-pres::after { content: "Você votou em: Roberto Souza"; }
+    #pres-nulo:checked ~ .urna .msg-pres::after { content: "Você votou em: Voto Nulo"; }
+    #pres-branco:checked ~ .urna .msg-pres::after { content: "Você votou em: Voto em Branco"; }
+  </style>
+</head>
+<body>
+
+
+  <input type="radio" name="gov_sel" id="gov-none" checked hidden>
+  <input type="radio" name="gov_sel" id="gov-1" hidden>
+  <input type="radio" name="gov_sel" id="gov-11" hidden>
+  <input type="radio" name="gov_sel" id="gov-2" hidden>
+  <input type="radio" name="gov_sel" id="gov-22" hidden>
+  <input type="radio" name="gov_sel" id="gov-nulo1" hidden>
+  <input type="radio" name="gov_sel" id="gov-nulo" hidden>
+  <input type="radio" name="gov_sel" id="gov-branco" hidden>
+  <input type="checkbox" id="gov-conf" hidden>
+
+
+  <input type="radio" name="pres_sel" id="pres-none" checked hidden>
+  <input type="radio" name="pres_sel" id="pres-1" hidden>
+  <input type="radio" name="pres_sel" id="pres-10" hidden>
+  <input type="radio" name="pres_sel" id="pres-2" hidden>
+  <input type="radio" name="pres_sel" id="pres-20" hidden>
+  <input type="radio" name="pres_sel" id="pres-nulo1" hidden>
+  <input type="radio" name="pres_sel" id="pres-nulo" hidden>
+  <input type="radio" name="pres_sel" id="pres-branco" hidden>
+  <input type="checkbox" id="pres-conf" hidden>
+
+  <div class="urna">
+    
+    
+    <div class="modal modal-gov">
+      <div class="msg-title">CONFIRMAÇÃO DE VOTO</div>
+      <div class="msg-gov"></div>
+    </div>
+
+    <div class="modal modal-pres">
+      <div class="msg-title">CONFIRMAÇÃO DE VOTO</div>
+      <div class="msg-pres"></div>
+    </div>
+
+
+    <div class="tela">
+      
+    
+      <div class="stage stage-gov">
+        <div>
+          <small>SEU VOTO VAI PARA</small>
+          <h3 style="margin: 5px 0;">GOVERNADOR</h3>
+          <div class="voto-num txt-gov-num"></div>
+          <div class="info-candidato txt-gov-info"></div>
+        </div>
+        <small style="border-top: 1px solid #ccc; padding-top: 4px; font-size: 10px;">
+          Aperte CONFIRMA para confirmar ou CORRIGE para reiniciar
+        </small>
+      </div>
+
+   
+      <div class="stage stage-pres">
+        <div>
+          <small>SEU VOTO VAI PARA</small>
+          <h3 style="margin: 5px 0;">PRESIDENTE</h3>
+          <div class="voto-num txt-pres-num"></div>
+          <div class="info-candidato txt-pres-info"></div>
+        </div>
+        <small style="border-top: 1px solid #ccc; padding-top: 4px; font-size: 10px;">
+          Aperte CONFIRMA para confirmar ou CORRIGE para reiniciar
+        </small>
+      </div>
+
+    
+      <div class="stage stage-fim">
+        <h1 style="font-size: 48px; margin: 0;">FIM</h1>
+      </div>
+
+    </div>
+
+  
+    <div class="teclado">
+      
+
+      <div class="grid-num key-layer key-gov-default">
+        <label for="gov-1" class="btn-key">1</label>
+        <label for="gov-2" class="btn-key">2</label>
+        <label for="gov-nulo1" class="btn-key">3</label>
+        <label for="gov-nulo1" class="btn-key">4</label>
+        <label for="gov-nulo1" class="btn-key">5</label>
+        <label for="gov-nulo1" class="btn-key">6</label>
+        <label for="gov-nulo1" class="btn-key">7</label>
+        <label for="gov-nulo1" class="btn-key">8</label>
+        <label for="gov-nulo1" class="btn-key">9</label>
+        <label for="gov-nulo1" class="btn-key" style="grid-column: 2;">0</label>
+      </div>
+
+      <div class="grid-num key-layer key-gov-d1">
+        <label for="gov-11" class="btn-key">1</label>
+        <label for="gov-nulo" class="btn-key">2</label>
+        <label for="gov-nulo" class="btn-key">3</label>
+        <label for="gov-nulo" class="btn-key">4</label>
+        <label for="gov-nulo" class="btn-key">5</label>
+        <label for="gov-nulo" class="btn-key">6</label>
+        <label for="gov-nulo" class="btn-key">7</label>
+        <label for="gov-nulo" class="btn-key">8</label>
+        <label for="gov-nulo" class="btn-key">9</label>
+        <label for="gov-nulo" class="btn-key" style="grid-column: 2;">0</label>
+      </div>
+
+      <div class="grid-num key-layer key-gov-d2">
+        <label for="gov-nulo" class="btn-key">1</label>
+        <label for="gov-22" class="btn-key">2</label>
+        <label for="gov-nulo" class="btn-key">3</label>
+        <label for="gov-nulo" class="btn-key">4</label>
+        <label for="gov-nulo" class="btn-key">5</label>
+        <label for="gov-nulo" class="btn-key">6</label>
+        <label for="gov-nulo" class="btn-key">7</label>
+        <label for="gov-nulo" class="btn-key">8</label>
+        <label for="gov-nulo" class="btn-key">9</label>
+        <label for="gov-nulo" class="btn-key" style="grid-column: 2;">0</label>
+      </div>
+
+      <div class="grid-num key-layer key-gov-dnulo">
+        <label for="gov-nulo" class="btn-key">1</label>
+        <label for="gov-nulo" class="btn-key">2</label>
+        <label for="gov-nulo" class="btn-key">3</label>
+        <label for="gov-nulo" class="btn-key">4</label>
+        <label for="gov-nulo" class="btn-key">5</label>
+        <label for="gov-nulo" class="btn-key">6</label>
+        <label for="gov-nulo" class="btn-key">7</label>
+        <label for="gov-nulo" class="btn-key">8</label>
+        <label for="gov-nulo" class="btn-key">9</label>
+        <label for="gov-nulo" class="btn-key" style="grid-column: 2;">0</label>
+      </div>
+
+  
+      <div class="grid-num key-layer key-pres-default">
+        <label for="pres-1" class="btn-key">1</label>
+        <label for="pres-2" class="btn-key">2</label>
+        <label for="pres-nulo1" class="btn-key">3</label>
+        <label for="pres-nulo1" class="btn-key">4</label>
+        <label for="pres-nulo1" class="btn-key">5</label>
+        <label for="pres-nulo1" class="btn-key">6</label>
+        <label for="pres-nulo1" class="btn-key">7</label>
+        <label for="pres-nulo1" class="btn-key">8</label>
+        <label for="pres-nulo1" class="btn-key">9</label>
+        <label for="pres-nulo1" class="btn-key" style="grid-column: 2;">0</label>
+      </div>
+
+      <div class="grid-num key-layer key-pres-d1">
+        <label for="pres-nulo" class="btn-key">1</label>
+        <label for="pres-nulo" class="btn-key">2</label>
+        <label for="pres-nulo" class="btn-key">3</label>
+        <label for="pres-nulo" class="btn-key">4</label>
+        <label for="pres-nulo" class="btn-key">5</label>
+        <label for="pres-nulo" class="btn-key">6</label>
+        <label for="pres-nulo" class="btn-key">7</label>
+        <label for="pres-nulo" class="btn-key">8</label>
+        <label for="pres-nulo" class="btn-key">9</label>
+        <label for="pres-10" class="btn-key" style="grid-column: 2;">0</label>
+      </div>
+
+      <div class="grid-num key-layer key-pres-d2">
+        <label for="pres-nulo" class="btn-key">1</label>
+        <label for="pres-nulo" class="btn-key">2</label>
+        <label for="pres-nulo" class="btn-key">3</label>
+        <label for="pres-nulo" class="btn-key">4</label>
+        <label for="pres-nulo" class="btn-key">5</label>
+        <label for="pres-nulo" class="btn-key">6</label>
+        <label for="pres-nulo" class="btn-key">7</label>
+        <label for="pres-nulo" class="btn-key">8</label>
+        <label for="pres-nulo" class="btn-key">9</label>
+        <label for="pres-20" class="btn-key" style="grid-column: 2;">0</label>
+      </div>
+
+      <div class="grid-num key-layer key-pres-dnulo">
+        <label for="pres-nulo" class="btn-key">1</label>
+        <label for="pres-nulo" class="btn-key">2</label>
+        <label for="pres-nulo" class="btn-key">3</label>
+        <label for="pres-nulo" class="btn-key">4</label>
+        <label for="pres-nulo" class="btn-key">5</label>
+        <label for="pres-nulo" class="btn-key">6</label>
+        <label for="pres-nulo" class="btn-key">7</label>
+        <label for="pres-nulo" class="btn-key">8</label>
+        <label for="pres-nulo" class="btn-key">9</label>
+        <label for="pres-nulo" class="btn-key" style="grid-column: 2;">0</label>
+      </div>
+
+
+      <div class="grid-num key-layer key-locked">
+        <span class="btn-key">1</span><span class="btn-key">2</span><span class="btn-key">3</span>
+        <span class="btn-key">4</span><span class="btn-key">5</span><span class="btn-key">6</span>
+        <span class="btn-key">7</span><span class="btn-key">8</span><span class="btn-key">9</span>
+        <span class="btn-key" style="grid-column: 2;">0</span>
+      </div>
+
+
+      <div class="grid-acoes">
+        <label for="gov-branco" class="btn-acao btn-branco btn-branco-gov">Branco</label>
+        <label for="pres-branco" class="btn-acao btn-branco btn-branco-pres">Branco</label>
+
+        <label for="gov-none" class="btn-acao btn-corrige btn-corrige-gov">Corrige</label>
+        <label for="pres-none" class="btn-acao btn-corrige btn-corrige-pres">Corrige</label>
+
+        <label class="btn-acao btn-confirma btn-conf-dis">Confirma</label>
+        <label for="gov-conf" class="btn-acao btn-confirma btn-conf-act btn-conf-gov">Confirma</label>
+        <label for="pres-conf" class="btn-acao btn-confirma btn-conf-act btn-conf-pres">Confirma</label>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
